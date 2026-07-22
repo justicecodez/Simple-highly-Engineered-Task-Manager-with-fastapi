@@ -1,0 +1,228 @@
+# Import FastAPI framework
+from fastapi import FastAPI, Request
+
+# Used to return JSON responses manually
+from fastapi.responses import JSONResponse
+
+# Used for validation errors from Pydantic
+from fastapi.exceptions import RequestValidationError
+
+
+# Create the FastAPI application object
+app = FastAPI()
+
+
+# -------------------------------------------------
+# RESPONSE HELPER
+# -------------------------------------------------
+
+def success_response(
+    message: str,
+    data=None,
+    status_code: int = 200
+):
+    # This function creates every successful response
+    # message: text we send to the client
+    # data: actual result
+    # status_code: HTTP status code
+
+    return JSONResponse(
+        status_code=status_code,
+
+        # This becomes the JSON body
+        content={
+            "success": True,
+            "message": message,
+            "data": data,
+            "errors": None
+        }
+    )
+
+
+
+def error_response(
+    message: str,
+    errors=None,
+    status_code: int = 400
+):
+    # This function creates every error response
+
+    return JSONResponse(
+        status_code=status_code,
+
+        content={
+            "success": False,
+            "message": message,
+            "data": None,
+            "errors": errors or []
+        }
+    )
+
+
+
+# -------------------------------------------------
+# CUSTOM BUSINESS ERROR
+# -------------------------------------------------
+
+
+class AppException(Exception):
+    # We create our own error type
+
+    def __init__(
+        self,
+        message: str,
+        code: str,
+        status_code: int = 400
+    ):
+
+        # Store the error message
+        self.message = message
+
+        # Store machine readable error code
+        self.code = code
+
+        # Store HTTP status
+        self.status_code = status_code
+
+
+
+# -------------------------------------------------
+# GLOBAL BUSINESS ERROR HANDLER
+# -------------------------------------------------
+
+
+@app.exception_handler(AppException)
+async def handle_app_exception(
+    request: Request,
+    exc: AppException
+):
+
+    # FastAPI calls this automatically
+    # whenever AppException is raised
+
+    return error_response(
+
+        # Human readable message
+        message=exc.message,
+
+
+        # Extra error details
+        errors=[
+            {
+                "code": exc.code,
+                "message": exc.message
+            }
+        ],
+
+
+        # Use the status code from the exception
+        status_code=exc.status_code
+    )
+
+
+
+# -------------------------------------------------
+# GLOBAL UNEXPECTED ERROR HANDLER
+# -------------------------------------------------
+
+
+@app.exception_handler(Exception)
+async def handle_unknown_error(
+    request: Request,
+    exc: Exception
+):
+
+    # This catches errors you did not expect
+
+    # Example:
+    # database crashed
+    # variable missing
+    # programming mistake
+
+    return error_response(
+
+        message="Something went wrong",
+
+        errors=[
+            {
+                "code": "SERVER_ERROR",
+                "message": str(exc)
+            }
+        ],
+
+        status_code=500
+    )
+
+
+
+# -------------------------------------------------
+# VALIDATION ERROR HANDLER
+# -------------------------------------------------
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(
+    request: Request,
+    exc: RequestValidationError
+):
+
+    # FastAPI runs this when input validation fails
+
+    return error_response(
+
+        message="Validation failed",
+
+        errors=exc.errors(),
+
+        status_code=422
+    )
+
+
+
+# -------------------------------------------------
+# ROUTE
+# -------------------------------------------------
+
+
+@app.get("/users/{user_id}")
+def get_user(user_id: int):
+
+    # user_id comes from URL
+    #
+    # Example:
+    # GET /users/10
+    #
+    # user_id = 10
+
+
+    if user_id == 0:
+
+        # Instead of returning an error,
+        # we throw an exception
+
+        raise AppException(
+
+            message="User not found",
+
+            code="USER_NOT_FOUND",
+
+            status_code=404
+        )
+
+
+    # Normally this comes from database
+
+    user = {
+        "id": user_id,
+        "name": "John"
+    }
+
+
+    # Return standard success response
+
+    return success_response(
+
+        message="User found",
+
+        data=user
+    )
