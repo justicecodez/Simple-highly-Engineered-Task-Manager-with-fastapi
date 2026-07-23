@@ -12,7 +12,6 @@ async def lifespan(app: FastAPI):
     yield
 
     await close_redis()
-    yield
     # Perform any cleanup tasks here
 
 app=FastAPI(

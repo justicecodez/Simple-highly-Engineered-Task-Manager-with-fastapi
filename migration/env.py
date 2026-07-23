@@ -7,6 +7,7 @@ from alembic import context
 from app.model.model import Base
 from app.model.refresh_jwt_token import RefreshTokenRequest
 from app.model.user import User
+from app.model.task import Task
 from app.config.mysql import DB_URL as DATABASE_URL
 
 # this is the Alembic Config object, which provides

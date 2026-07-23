@@ -1,5 +1,4 @@
 import redis.asyncio as redis
-from fastapi_limiter import FastAPILimiter
 
 from app.settings.redis import redis_settings
 
@@ -16,9 +15,11 @@ async def init_redis():
         decode_responses=True,
     )
 
-    await FastAPILimiter.init(redis_client)
+    await redis_client.ping()
 
 
 async def close_redis():
+    global redis_client
+
     if redis_client:
         await redis_client.close()

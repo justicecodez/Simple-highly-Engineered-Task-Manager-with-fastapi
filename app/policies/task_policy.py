@@ -1,4 +1,4 @@
-from model import Task
+from app.model.task import Task
 
 class TaskPolicy:
     def __init__(self, user_id: int):

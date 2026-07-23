@@ -17,6 +17,10 @@ class TaskSchemaUpdate(BaseModel):
     priority: Priority
     due_date: date
 
+class TaskSchemaFilter(BaseModel):
+    status: Status|None
+    priority: Priority|None
+    due_date: date|None
 
 class TaskSchemaResponse(BaseModel):
     id: int

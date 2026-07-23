@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status
 
-from app.schema.task_schema import TaskSchemaResponse, TaskSchemaRequest, TaskSchemaUpdate
+from app.schema.task_schema import TaskSchemaResponse, TaskSchemaRequest, TaskSchemaUpdate, TaskSchemaFilter
 from app.utils.jwt_helper import get_current_user_from_token
 from app.repository.app_repository import DBRepository
 from app.utils.db_dependency import get_db_repository
@@ -15,10 +15,10 @@ async def create_task_service(task: TaskSchemaRequest, user_id:int=Depends(get_c
     new_task = await repo.create_record(Task, {**task.model_dump(), "user_id": user_id})
     return new_task
 
-async def get_all_tasks_by_user_id_service(user_id:int=Depends(get_current_user_from_token), repo:DBRepository=Depends(get_db_repository) )->TaskSchemaResponse:
+async def get_all_tasks_by_user_id_service(filter: TaskSchemaFilter = None, user_id:int=Depends(get_current_user_from_token), repo:DBRepository=Depends(get_db_repository) )->TaskSchemaResponse:
     task_policy = TaskPolicy(user_id)
     await authorize(task_policy.can_read_all())
-    tasks = await repo.get_all_records(Task, Task.user_id, user_id)
+    tasks = await repo.get_tasks(user_id=user_id, filter=filter)
     return tasks
 
 async def get_task_by_id_service(task_id:int, user_id:int=Depends(get_current_user_from_token), repo:DBRepository=Depends(get_db_repository) )->TaskSchemaResponse:
